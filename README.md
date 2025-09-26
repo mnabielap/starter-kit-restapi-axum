@@ -163,19 +163,19 @@ Jika Anda tidak ingin menginstal Rust atau Postgres secara lokal, Docker adalah 
 
 6.  **Build Image Aplikasi**
     ```sh
-    docker build -t velzon-axum-app .
+    docker build -t restapi-axum-app .
     ```
 
 7.  **Jalankan Kontainer Aplikasi**
     Kontainer ini akan menggunakan variabel dari `.env.docker` yang kita buat.
     ```sh
     docker run -d -p 5005:8000 \
-      --name velzon-axum-container \
+      --name restapi-axum-container \
       --network restapi_axum_network \
       --env-file .env.docker \
       -v restapi_axum_media_volume:/app/uploads \
       --restart always \
-      velzon-axum-app
+      restapi-axum-app
     ```
     🎉 Server Anda sekarang berjalan di dalam Docker dan dapat diakses di `http://localhost:5005`.
 
@@ -214,19 +214,19 @@ Berikut adalah beberapa perintah Docker yang berguna untuk mengelola kontainer A
 
 -   🪵 **Melihat log dari kontainer yang berjalan**
     ```sh
-    docker logs -f velzon-axum-container
+    docker logs -f restapi-axum-container
     ```
 -   🛑 **Menghentikan kontainer**
     ```sh
-    docker stop velzon-axum-container
+    docker stop restapi-axum-container
     ```
 -   ▶️ **Memulai kembali kontainer yang sudah ada**
     ```sh
-    docker start velzon-axum-container
+    docker start restapi-axum-container
     ```
 -   🗑️ **Menghapus kontainer (setelah dihentikan)**
     ```sh
-    docker rm velzon-axum-container
+    docker rm restapi-axum-container
     ```
 -   🗂️ **Melihat daftar volume yang ada**
     ```sh
