@@ -1,0 +1,77 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO tokens (token, user_id, expires_at, token_type)\n            VALUES ($1, $2, $3, $4)\n            RETURNING id, token, user_id, token_type AS \"token_type!: TokenType\", expires_at, blacklisted\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "token",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "token_type!: TokenType",
+        "type_info": {
+          "Custom": {
+            "name": "token_type",
+            "kind": {
+              "Enum": [
+                "refresh",
+                "resetPassword",
+                "verifyEmail"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "blacklisted",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Timestamptz",
+        {
+          "Custom": {
+            "name": "token_type",
+            "kind": {
+              "Enum": [
+                "refresh",
+                "resetPassword",
+                "verifyEmail"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "41cc214d21ee86bcd95a5ebd3fa7d279c3d43df2bd199daef5fee5d631232ca6"
+}

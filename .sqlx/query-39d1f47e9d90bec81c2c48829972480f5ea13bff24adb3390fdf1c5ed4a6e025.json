@@ -1,0 +1,63 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT id, token, user_id, token_type AS \"token_type!: TokenType\", expires_at, blacklisted\n            FROM tokens WHERE token = $1 AND blacklisted = false\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "token",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "token_type!: TokenType",
+        "type_info": {
+          "Custom": {
+            "name": "token_type",
+            "kind": {
+              "Enum": [
+                "refresh",
+                "resetPassword",
+                "verifyEmail"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "blacklisted",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "39d1f47e9d90bec81c2c48829972480f5ea13bff24adb3390fdf1c5ed4a6e025"
+}
