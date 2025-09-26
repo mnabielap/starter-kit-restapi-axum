@@ -1,16 +1,14 @@
 use std::sync::Arc;
-use axum::{
-    routing::post,
-    Router,
-};
+use axum::{routing::post, Router};
+
 use crate::{
-    handler::auth_handler::{register_handler, login_handler},
-    repository::user_repository::UserRepository,
+    handler::auth_handler::{login_handler, register_handler},
+    usecase::auth_usecase::AuthUsecase,
 };
 
-pub fn create_auth_router(user_repo: Arc<dyn UserRepository>) -> Router {
+pub fn create_auth_router(auth_usecase: Arc<dyn AuthUsecase>) -> Router {
     Router::new()
         .route("/register", post(register_handler))
         .route("/login", post(login_handler))
-        .with_state(user_repo)
+        .with_state(auth_usecase)
 }
