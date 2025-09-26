@@ -21,4 +21,13 @@ pub struct TokenClaims {
     pub sub: Uuid,
     pub iat: usize,
     pub exp: usize,
+    pub token_type: String,
+}
+
+#[derive(Debug, sqlx::Type, Clone, PartialEq)]
+#[sqlx(type_name = "token_type", rename_all = "camelCase")]
+pub enum TokenType {
+    Refresh,
+    ResetPassword,
+    VerifyEmail,
 }

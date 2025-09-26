@@ -19,7 +19,7 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, sqlx::Type, Clone, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, sqlx::Type, Clone, ToSchema, PartialEq, PartialOrd, Eq, Ord)]
 #[sqlx(type_name = "user_role", rename_all = "lowercase")]
 pub enum Role {
     User,
@@ -28,7 +28,6 @@ pub enum Role {
 
 impl TryFrom<String> for Role {
     type Error = &'static str;
-
     fn try_from(value: String) -> Result<Self, Self::Error> {
         match value.as_str() {
             "user" => Ok(Role::User),
