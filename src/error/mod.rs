@@ -5,6 +5,8 @@ use axum::{
 };
 use serde_json::json;
 use thiserror::Error;
+use serde::Serialize;
+use utoipa::ToSchema;
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -34,6 +36,12 @@ pub enum AppError {
 
     #[error(transparent)]
     BcryptError(#[from] bcrypt::BcryptError),
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct ErrorResponse {
+    pub code: u16,
+    pub message: String,
 }
 
 impl IntoResponse for AppError {
@@ -70,10 +78,10 @@ impl IntoResponse for AppError {
             AppError::BcryptError(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Password hashing error".to_string()),
         };
 
-        let body = Json(json!({
-            "code": status.as_u16(),
-            "message": error_message,
-        }));
+        let body = Json(ErrorResponse {
+            code: status.as_u16(),
+            message: error_message,
+        });
 
         (status, body).into_response()
     }

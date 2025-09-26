@@ -1,6 +1,8 @@
 use std::sync::Arc;
 use axum::Router;
 use tower_http::cors::{Any, CorsLayer};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     repository::user_repository::{UserRepository, UserRepositoryImpl},
@@ -9,10 +11,10 @@ use crate::{
 };
 
 mod auth_route;
+mod swagger;
 
 pub fn create_router(db_pool: Arc<sqlx::PgPool>) -> Router {
     let user_repo: Arc<dyn UserRepository> = Arc::new(UserRepositoryImpl::new(db_pool));
-
     let auth_usecase: Arc<dyn AuthUsecase> = Arc::new(AuthUsecaseImpl::new(user_repo));
 
     let cors = CorsLayer::new()
@@ -22,6 +24,12 @@ pub fn create_router(db_pool: Arc<sqlx::PgPool>) -> Router {
 
     let v1_routes = Router::new()
         .nest("/auth", create_auth_router(auth_usecase.clone()));
-
-    Router::new().nest("/v1", v1_routes).layer(cors)
+    
+    Router::new()
+        .merge(SwaggerUi::new("/swagger-ui").url(
+            "/api-docs/openapi.json",
+            swagger::ApiDoc::openapi(),
+        ))
+        .nest("/v1", v1_routes)
+        .layer(cors)
 }
