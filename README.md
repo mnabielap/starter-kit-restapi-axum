@@ -117,7 +117,7 @@ Jika Anda tidak ingin menginstal Rust atau Postgres secara lokal, Docker adalah 
 #### Langkah-langkah Setup
 1.  **Clone Repositori** (Jika belum)
     ```sh
-    git clone https://github.com/username/starter-kit-restapi-axum.git
+    git clone https://github.com/mnabielap/starter-kit-restapi-axum.git
     cd starter-kit-restapi-axum
     ```
 
