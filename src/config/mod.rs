@@ -13,7 +13,7 @@ pub struct AppConfig {
 }
 
 pub static CONFIG: Lazy<Arc<AppConfig>> = Lazy::new(|| {
-    // dotenvy::dotenv().expect("Failed to read .env file");
+    dotenvy::dotenv().ok();
 
     let config = config::Config::builder()
         .add_source(config::Environment::default())
