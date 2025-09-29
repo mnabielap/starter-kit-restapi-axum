@@ -17,7 +17,6 @@ use crate::{
         token_repository::{Token, TokenRepository},
         user_repository::UserRepository,
     },
-    // TODO: services::email_service::EmailService,
 };
 
 fn create_token(user_id: Uuid, secret: &str, expires_in_str: &str, token_type: &str) -> Result<TokenDetails, AppError> {
@@ -54,7 +53,6 @@ pub trait AuthUsecase: Send + Sync {
 pub struct AuthUsecaseImpl {
     user_repo: Arc<dyn UserRepository>,
     token_repo: Arc<dyn TokenRepository>,
-    // TODO:email_service: Arc<dyn EmailService>,
 }
 
 impl AuthUsecaseImpl {
