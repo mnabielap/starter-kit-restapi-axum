@@ -57,10 +57,32 @@ impl IntoResponse for AppError {
             AppError::Forbidden(msg) => (StatusCode::FORBIDDEN, msg),
             AppError::SqlxError(err) => {
                 tracing::error!("SQLx error: {:?}", err);
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Database error".to_string(),
-                )
+                match &err {
+                    sqlx::Error::Database(db_err) => {
+                        match db_err.kind() {
+                            sqlx::error::ErrorKind::UniqueViolation => (
+                                StatusCode::CONFLICT,
+                                "The data you entered already exists.".to_string(),
+                            ),
+                            sqlx::error::ErrorKind::ForeignKeyViolation => (
+                                StatusCode::BAD_REQUEST,
+                                "No related data found.".to_string(),
+                            ),
+                            sqlx::error::ErrorKind::NotNullViolation => (
+                                StatusCode::BAD_REQUEST,
+                                "There are required fields that are empty.".to_string(),
+                            ),
+                            _ => (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                "An error occurred in the database.".to_string(),
+                            ),
+                        }
+                    }
+                    _ => (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "There is a problem connecting to the database.".to_string(),
+                    ),
+                }
             }
             AppError::JwtError(err) => {
                 tracing::error!("JWT error: {:?}", err);
