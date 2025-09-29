@@ -40,10 +40,6 @@ WORKDIR /app
 # Salin binary yang sudah di-compile dari stage builder
 COPY --from=builder /usr/src/app/target/release/starter-kit-restapi-axum .
 
-# Salin entrypoint script
-COPY entrypoint.sh .
-RUN chmod +x ./entrypoint.sh
-
 # Buat direktori untuk media/uploads (seperti yang diminta untuk volume)
 RUN mkdir -p /app/uploads && chown -R appuser:appuser /app
 
@@ -56,5 +52,5 @@ USER appuser
 # Expose port yang digunakan oleh aplikasi di dalam kontainer (sesuai .env)
 EXPOSE 8000
 
-# Set entrypoint untuk menjalankan aplikasi
-ENTRYPOINT ["./entrypoint.sh"]
+# Run command to start app
+CMD './starter-kit-restapi-axum'

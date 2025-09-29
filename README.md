@@ -42,8 +42,7 @@ Selamat datang di Starter Kit REST API berbasis **Axum**, sebuah fondasi yang ku
 ├── .env.docker             # File konfigurasi untuk Docker
 ├── .sqlx/                  # Cache metadata SQLx untuk mode offline
 ├── Cargo.toml              # Dependensi proyek
-├── Dockerfile              # Resep untuk membangun image Docker
-└── entrypoint.sh           # Skrip entrypoint untuk kontainer Docker
+└── Dockerfile              # Resep untuk membangun image Docker
 ```
 
 ## 🚀 Memulai Proyek
