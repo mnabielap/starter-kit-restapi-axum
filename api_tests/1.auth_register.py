@@ -1,4 +1,7 @@
 import time
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from utils import send_and_print, save_config, BASE_URL
 
 # Generate a unique email to ensure registration always works
@@ -17,6 +20,7 @@ payload = {
 response = send_and_print(
     f"{BASE_URL}/auth/register",
     method="POST",
+    output_file=f"{os.path.splitext(os.path.basename(__file__))[0]}.json",
     body=payload
 )
 

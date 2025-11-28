@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from utils import send_and_print, save_config, load_config, BASE_URL
 
 # Load the email registered previously, or use a default
@@ -14,6 +17,7 @@ payload = {
 response = send_and_print(
     f"{BASE_URL}/auth/login",
     method="POST",
+    output_file=f"{os.path.splitext(os.path.basename(__file__))[0]}.json",
     body=payload
 )
 
