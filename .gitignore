@@ -1,0 +1,12 @@
+/target
+**/__pycache__
+/.vscode
+/vendor
+**.db
+**.sqlite
+**.sqlite3
+**api_tests/*.json
+**.db-shm
+**.db-wal
+/.sqlx
+.env
