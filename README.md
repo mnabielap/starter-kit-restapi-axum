@@ -182,13 +182,6 @@ If you do not want to install Rust or Postgres locally, Docker is the solution.
 
 The `api_tests/` directory contains simple Python scripts to test each endpoint. This is very useful for quick verification without needing to open Postman.
 
-#### Prerequisites
--   [Python 3](https://www.python.org/downloads/)
--   `requests` library.
-    ```sh
-    pip install requests
-    ```
-
 #### How to Run Tests
 Simply run the relevant Python file from the terminal. The script will print the API response output.
 ```sh

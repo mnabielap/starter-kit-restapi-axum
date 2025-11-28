@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from utils import send_and_print, load_config, BASE_URL
 
 access_token = load_config("access_token")
@@ -19,5 +22,6 @@ else:
         f"{BASE_URL}/users/{target_id}",
         method="PATCH",
         headers=headers,
+        output_file=f"{os.path.splitext(os.path.basename(__file__))[0]}.json",
         body=payload
     )
