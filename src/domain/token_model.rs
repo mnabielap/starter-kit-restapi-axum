@@ -25,7 +25,7 @@ pub struct TokenClaims {
 }
 
 #[derive(Debug, sqlx::Type, Clone, PartialEq)]
-#[sqlx(type_name = "token_type", rename_all = "camelCase")]
+
 pub enum TokenType {
     Refresh,
     ResetPassword,

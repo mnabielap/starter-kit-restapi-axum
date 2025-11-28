@@ -23,7 +23,7 @@ mod auth_route;
 mod swagger;
 mod user_route;
 
-pub fn create_router(db_pool: Arc<sqlx::PgPool>) -> Router {
+pub fn create_router(db_pool: Arc<sqlx::SqlitePool>) -> Router {
     // Repositories
     let user_repo: Arc<dyn UserRepository> = Arc::new(UserRepositoryImpl::new(db_pool.clone()));
     let token_repo: Arc<dyn TokenRepository> = Arc::new(TokenRepositoryImpl::new(db_pool.clone()));

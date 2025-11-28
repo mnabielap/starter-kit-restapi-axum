@@ -1,9 +1,10 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 use std::sync::Arc;
 use utoipa::ToSchema;
 use uuid::Uuid;
+use chrono::{DateTime, Utc};
 
 use crate::{
     domain::user_model::{Role, User},
@@ -40,11 +41,11 @@ pub trait UserRepository: Send + Sync {
 }
 
 pub struct UserRepositoryImpl {
-    db_pool: Arc<PgPool>,
+    db_pool: Arc<SqlitePool>,
 }
 
 impl UserRepositoryImpl {
-    pub fn new(db_pool: Arc<PgPool>) -> Self {
+    pub fn new(db_pool: Arc<SqlitePool>) -> Self {
         Self { db_pool }
     }
 }
@@ -54,7 +55,16 @@ impl UserRepository for UserRepositoryImpl {
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, AppError> {
         sqlx::query_as!(
             User,
-            r#"SELECT id, name, email, password, role AS "role!: Role", is_email_verified, created_at, updated_at FROM users WHERE email = $1"#,
+            r#"SELECT 
+                id as "id!: Uuid", 
+                name, 
+                email, 
+                password, 
+                role AS "role!: Role", 
+                is_email_verified, 
+                created_at as "created_at!: DateTime<Utc>", 
+                updated_at as "updated_at!: DateTime<Utc>" 
+            FROM users WHERE email = $1"#,
             email
         )
         .fetch_optional(&*self.db_pool)
@@ -65,7 +75,16 @@ impl UserRepository for UserRepositoryImpl {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<User>, AppError> {
         let user = sqlx::query_as!(
             User,
-             r#"SELECT id, name, email, password, role AS "role!: Role", is_email_verified, created_at, updated_at FROM users WHERE id = $1"#,
+             r#"SELECT 
+                id as "id!: Uuid", 
+                name, 
+                email, 
+                password, 
+                role AS "role!: Role", 
+                is_email_verified, 
+                created_at as "created_at!: DateTime<Utc>", 
+                updated_at as "updated_at!: DateTime<Utc>" 
+            FROM users WHERE id = $1"#,
             id
         )
         .fetch_optional(&*self.db_pool)
@@ -74,14 +93,25 @@ impl UserRepository for UserRepositoryImpl {
     }
 
     async fn create(&self, name: &str, email: &str, password_hash: &str, role: Role) -> Result<User, AppError> {
+        let new_id = Uuid::new_v4();
+        let role_val = role as Role;
+
         let user = sqlx::query_as!(
             User,
             r#"
-            INSERT INTO users (name, email, password, role)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, name, email, password, role AS "role!: Role", is_email_verified, created_at, updated_at
+            INSERT INTO users (id, name, email, password, role)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING 
+                id as "id!: Uuid", 
+                name, 
+                email, 
+                password, 
+                role AS "role!: Role", 
+                is_email_verified, 
+                created_at as "created_at!: DateTime<Utc>", 
+                updated_at as "updated_at!: DateTime<Utc>"
             "#,
-            name, email, password_hash, role as Role
+            new_id, name, email, password_hash, role_val
         )
         .fetch_one(&*self.db_pool)
         .await?;
@@ -96,14 +126,25 @@ impl UserRepository for UserRepositoryImpl {
         let total_results: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
             .fetch_one(&*self.db_pool).await?;
         
+        let limit_i64 = limit as i64;
+        let offset_i64 = offset as i64;
+
         let users = sqlx::query_as!(
             User,
             r#"
-            SELECT id, name, email, password, role AS "role!: Role", is_email_verified, created_at, updated_at
+            SELECT 
+                id as "id!: Uuid", 
+                name, 
+                email, 
+                password, 
+                role AS "role!: Role", 
+                is_email_verified, 
+                created_at as "created_at!: DateTime<Utc>", 
+                updated_at as "updated_at!: DateTime<Utc>"
             FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2
             "#,
-            limit as i64,
-            offset as i64
+            limit_i64,
+            offset_i64
         )
         .fetch_all(&*self.db_pool)
         .await?;
@@ -143,14 +184,24 @@ impl UserRepository for UserRepositoryImpl {
     }
 
     async fn save(&self, user: &User) -> Result<User, AppError> {
+        let role_val = user.role.clone() as Role;
+
         sqlx::query_as!(
             User,
             r#"
-            UPDATE users SET name = $1, email = $2, password = $3, role = $4, is_email_verified = $5, updated_at = NOW()
+            UPDATE users SET name = $1, email = $2, password = $3, role = $4, is_email_verified = $5, updated_at = CURRENT_TIMESTAMP
             WHERE id = $6
-            RETURNING id, name, email, password, role AS "role!: Role", is_email_verified, created_at, updated_at
+            RETURNING 
+                id as "id!: Uuid", 
+                name, 
+                email, 
+                password, 
+                role AS "role!: Role", 
+                is_email_verified, 
+                created_at as "created_at!: DateTime<Utc>", 
+                updated_at as "updated_at!: DateTime<Utc>"
             "#,
-            user.name, user.email, user.password, user.role.clone() as Role, user.is_email_verified, user.id
+            user.name, user.email, user.password, role_val, user.is_email_verified, user.id
         )
         .fetch_one(&*self.db_pool)
         .await

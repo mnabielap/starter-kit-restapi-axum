@@ -1,12 +1,12 @@
-# 🚀 REST API Starter Kit with Axum, SQLx, and Postgres
+# 🚀 REST API Starter Kit with Axum, SQLx, and SQLite
 
 <div align="center">
 
-![Rust](https://img.shields.io/badge/rust-1.89+-orange.svg)![Axum](https://img.shields.io/badge/axum-0.7-blue.svg)![SQLx](https://img.shields.io/badge/sqlx-0.7-green.svg)![PostgreSQL](https://img.shields.io/badge/postgres-16-blue.svg)![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)
+![Rust](https://img.shields.io/badge/rust-1.89+-orange.svg)![Axum](https://img.shields.io/badge/axum-0.7-blue.svg)![SQLx](https://img.shields.io/badge/sqlx-0.7-green.svg)![SQLite](https://img.shields.io/badge/sqlite-embedded-blue.svg)![License](https://img.shields.io/badge/license-MIT-lightgrey.svg)
 
 </div>
 
-Welcome to the **Axum**-based REST API Starter Kit, a robust, modern, and production-ready foundation for building backend services with Rust. This project is designed with a layered architecture (*Usecase*, *Repository*, *Handler*) to ensure organized, testable, and maintainable code.
+Welcome to the **Axum**-based REST API Starter Kit, a robust, modern, and production-ready foundation for building backend services with Rust. This project now uses **SQLite** for ease of deployment without sacrificing performance for medium scale.
 
 ## ✨ Key Features
 
@@ -16,14 +16,16 @@ Welcome to the **Axum**-based REST API Starter Kit, a robust, modern, and produc
 -   🏢 **Layered Architecture**: Clear separation between business logic (*Usecase*), data access (*Repository*), and API routes (*Handler*).
 -   👤 **User & Role Management**: CRUD for users with a role system (*Admin* & *User*).
 -   🛡️ **Middleware & Protected Routes**: Examples of using *middleware* for authentication and role-based authorization.
--   🐘 **Postgres Database**: Uses [SQLx](https://github.com/launchbadge/sqlx) with *compile-time checked queries* for type safety.
+-   🗃️ **SQLite Database**: Lightweight, *embedded*, and does not require a separate database server.
 -   📚 **Automatic API Documentation**: Swagger UI integrated with [Utoipa](https://github.com/juhaku/utoipa).
 -   ⚙️ **Flexible Configuration**: Configuration management via `.env` file and *environment variables*.
 -   📝 **Logging**: Structured logging with `tracing` to facilitate *debugging*.
--   🐳 **Docker Support**: Ready to be *containerized* with an efficient `Dockerfile`.
+-   🐳 **Docker Support**: Extremely lightweight and easy to run (self-contained).
 -   🧪 **API Testing**: Equipped with Python scripts for endpoint testing as a Postman replacement.
 
 ## 📁 Project Structure
+
+Standard Rust structure, with the addition of the `.sqlx/` folder for *offline compilation* and `data/` (created at runtime) to store database files.
 
 ```
 .
@@ -53,10 +55,9 @@ We recommend running this project locally first to understand the flow. If you e
 
 #### Prerequisites
 -   [Rust](https://www.rust-lang.org/tools/install) (version 1.89+).
--   [PostgreSQL](https://www.postgresql.org/download/) (version 14+).
--   [`sqlx-cli`](https://github.com/launchbadge/sqlx/tree/main/sqlx-cli) for migration management.
+-   [`sqlx-cli`](https://github.com/launchbadge/sqlx/tree/main/sqlx-cli) with sqlite feature.
     ```sh
-    cargo install sqlx-cli --no-default-features --features rustls,postgres
+    cargo install sqlx-cli --no-default-features --features rustls,sqlite --force
     ```
 
 #### Setup Steps
@@ -70,35 +71,28 @@ We recommend running this project locally first to understand the flow. If you e
     Create a file named `.env` in the project root and copy the following content. Adjust if necessary.
     ```env
     # .env
-    DATABASE_URL=postgres://postgres:postgres@localhost:5432/starter_axum
-
-    # Server
+    DATABASE_URL=sqlite://data.db?mode=rwc
     SERVER_HOST=127.0.0.1
     SERVER_PORT=8000
 
     # JWT Secrets
-    JWT_SECRET=super_secure_secret
+    JWT_SECRET=local_secret_123
     JWT_ACCESS_TOKEN_EXPIRES_IN=15m
     JWT_REFRESH_TOKEN_EXPIRES_IN=7d
     ```
 
-3.  **Setup Postgres Database**
-    Ensure your Postgres service is running, then create a new database using `psql` or your favorite tool.
+3.  **Setup Database & Migrations**
+    This command will create the `data.db` file and create tables.
     ```sh
-    # Example using psql
-    psql -U postgres
-    CREATE DATABASE starter_axum;
-    \q
-    ```
+    # Create database file
+    sqlx database create
 
-4.  **Run Database Migrations**
-    This command will create the required tables (`users`, `tokens`, etc.) according to the files in the `migrations/` folder.
-    ```sh
+    # Run migrations
     sqlx migrate run
     ```
     > 💡 **Important:** If you change SQL queries within the code, run `cargo sqlx prepare` to update the `.sqlx` cache.
 
-5.  **Run Application**
+4.  **Run Application**
     ```sh
     cargo run
     ```
@@ -108,75 +102,55 @@ We recommend running this project locally first to understand the flow. If you e
 
 ### 🐳 Method 2: Using Docker
 
-If you do not want to install Rust or Postgres locally, Docker is the solution.
+Since it uses SQLite, we do not need to run a separate database container. The application becomes *self-contained*.
 
 #### Prerequisites
--   [Docker](https://www.docker.com/get-started) and Docker Desktop/Engine installed and running.
+-   [Docker](https://www.docker.com/get-started) installed.
+-   **IMPORTANT**: Before building docker, ensure SQLx metadata is up to date to compile without a DB connection inside the Docker builder.
+    ```sh
+    # Run this on your local machine before building docker
+    cargo sqlx prepare
+    ```
 
 #### Setup Steps
-1.  **Clone Repository** (If you haven't already)
+1.  **Build Application Image**
     ```sh
-    git clone https://github.com/mnabielap/starter-kit-restapi-axum.git
-    cd starter-kit-restapi-axum
+    docker build -t restapi-axum-sqlite .
     ```
 
 2.  **Create `.env.docker` File**
-    The application inside Docker will use this file for configuration. Note the `DATABASE_URL` pointing to the database container name.
+    The application inside Docker will use this file for configuration.
     ```env
     # .env.docker
-    DATABASE_URL=postgres://postgres:postgres@postgres-db:5432/starter_axum
+    # Note: 'data' refers to the folder inside the container working directory
+    DATABASE_URL=sqlite://data/data.db?mode=rwc
     SERVER_HOST=0.0.0.0
     SERVER_PORT=8000
-    JWT_SECRET=super_secure_docker_secret
+    JWT_SECRET=this_is_a_very_secure_and_very_long_jwt_secret_for_development_in_docker
     JWT_ACCESS_TOKEN_EXPIRES_IN=15m
     JWT_REFRESH_TOKEN_EXPIRES_IN=7d
     ```
 
-3.  **Create Docker Network & Volumes**
-    This only needs to be done once. The Network is for communication between containers, and Volumes are to store data persistently.
+3.  **Create Volume for Data (Optional but Recommended)**
+    To ensure user data is not lost when the container is removed, we create a volume.
     ```sh
-    docker network create restapi_axum_network
-    docker volume create restapi_axum_db_volume
-    docker volume create restapi_axum_media_volume
+    docker volume create axum_sqlite_data
     ```
 
-4.  **Run Postgres Database Container**
+4.  **Run Container**
+    We will mount the volume to `/app/data` and use the `.env.docker` file.
     ```sh
     docker run -d \
-      --name postgres-db \
-      --network restapi_axum_network \
-      -p 5433:5432 \
-      -e POSTGRES_USER=postgres \
-      -e POSTGRES_PASSWORD=postgres \
-      -e POSTGRES_DB=starter_axum \
-      -v restapi_axum_db_volume:/var/lib/postgresql/data \
-      --restart always \
-      postgres:16-alpine
-    ```
-
-5.  **Run Migrations to Docker Database**
-    From your local computer, run migrations targeting the newly created database container.
-    ```sh
-    sqlx migrate run --database-url "postgres://postgres:postgres@localhost:5433/starter_axum"
-    ```
-
-6.  **Build Application Image**
-    ```sh
-    docker build -t restapi-axum-app .
-    ```
-
-7.  **Run Application Container**
-    This container will use variables from `.env.docker` that we created.
-    ```sh
-    docker run -d -p 5005:8000 \
-      --name restapi-axum-container \
-      --network restapi_axum_network \
+      -p 5005:8000 \
+      --name axum-app \
       --env-file .env.docker \
-      -v restapi_axum_media_volume:/app/uploads \
+      -v axum_sqlite_data:/app/data \
       --restart always \
-      restapi-axum-app
+      restapi-axum-sqlite
     ```
     🎉 Your server is now running inside Docker and can be accessed at `http://localhost:5005`.
+
+    > *Note: Migrations should ideally be run by the application at startup, or you can mount a pre-migrated `.db` file.*
 
 ## 🧪 API Testing (Postman Replacement)
 
@@ -213,19 +187,19 @@ Here are some useful Docker commands to manage your containers.
 
 -   🪵 **View logs from a running container**
     ```sh
-    docker logs -f restapi-axum-container
+    docker logs -f axum-app
     ```
 -   🛑 **Stop container**
     ```sh
-    docker stop restapi-axum-container
+    docker stop axum-app
     ```
 -   ▶️ **Start an existing container**
     ```sh
-    docker start restapi-axum-container
+    docker start axum-app
     ```
 -   🗑️ **Remove container (after stopping)**
     ```sh
-    docker rm restapi-axum-container
+    docker rm axum-app
     ```
 -   🗂️ **List existing volumes**
     ```sh
@@ -234,7 +208,7 @@ Here are some useful Docker commands to manage your containers.
 -   ⚠️ **Remove volume (WARNING: This will permanently delete data!)**
     ```sh
     # Careful when running this command!
-    docker volume rm restapi_axum_db_volume
+    docker volume rm axum_sqlite_data
     ```
 
 ## 🛠️ Main Technologies & Libraries

@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 use axum::Router;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::sqlite::SqlitePoolOptions;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -30,12 +30,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let db_pool = Arc::new(
-        PgPoolOptions::new()
-            .max_connections(10)
-            .connect(&CONFIG.database_url)
-            .await?,
-    );
+    let pool = SqlitePoolOptions::new()
+        .max_connections(10)
+        .connect(&CONFIG.database_url)
+        .await?;
+
+    tracing::info!("🚀 Running database migrations...");
+    sqlx::migrate!()
+        .run(&pool)
+        .await?;
+    tracing::info!("✅ Migrations success");
+
+    // 3. Wrap pool
+    let db_pool = Arc::new(pool);
     tracing::info!("Connected to database");
 
     let app = create_router(db_pool);

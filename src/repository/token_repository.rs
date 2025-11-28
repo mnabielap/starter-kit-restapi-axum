@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 use std::sync::Arc;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
@@ -24,11 +24,11 @@ pub trait TokenRepository: Send + Sync {
 }
 
 pub struct TokenRepositoryImpl {
-    db_pool: Arc<PgPool>,
+    db_pool: Arc<SqlitePool>,
 }
 
 impl TokenRepositoryImpl {
-    pub fn new(db_pool: Arc<PgPool>) -> Self {
+    pub fn new(db_pool: Arc<SqlitePool>) -> Self {
         Self { db_pool }
     }
 }
@@ -36,14 +36,23 @@ impl TokenRepositoryImpl {
 #[async_trait]
 impl TokenRepository for TokenRepositoryImpl {
     async fn create(&self, token: &str, user_id: Uuid, expires_at: DateTime<Utc>, token_type: TokenType) -> Result<Token, AppError> {
+        let new_id = Uuid::new_v4();
+        let type_val = token_type as TokenType;
+
         sqlx::query_as!(
             Token,
             r#"
-            INSERT INTO tokens (token, user_id, expires_at, token_type)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, token, user_id, token_type AS "token_type!: TokenType", expires_at, blacklisted
+            INSERT INTO tokens (id, token, user_id, expires_at, token_type)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING 
+                id as "id!: Uuid", 
+                token, 
+                user_id as "user_id!: Uuid", 
+                token_type AS "token_type!: TokenType", 
+                expires_at as "expires_at!: DateTime<Utc>", 
+                blacklisted
             "#,
-            token, user_id, expires_at, token_type as TokenType
+            new_id, token, user_id, expires_at, type_val
         )
         .fetch_one(&*self.db_pool)
         .await
@@ -54,8 +63,14 @@ impl TokenRepository for TokenRepositoryImpl {
         sqlx::query_as!(
             Token,
             r#"
-            SELECT id, token, user_id, token_type AS "token_type!: TokenType", expires_at, blacklisted
-            FROM tokens WHERE token = $1 AND blacklisted = false
+            SELECT 
+                id as "id!: Uuid", 
+                token, 
+                user_id as "user_id!: Uuid", 
+                token_type AS "token_type!: TokenType", 
+                expires_at as "expires_at!: DateTime<Utc>", 
+                blacklisted
+            FROM tokens WHERE token = $1 AND blacklisted = 0
             "#,
             token
         )
