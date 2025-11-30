@@ -160,10 +160,10 @@ The `api_tests/` directory contains simple Python scripts to test each endpoint.
 Simply run the relevant Python file from the terminal. The script will print the API response output.
 ```sh
 # Example running registration test
-python api_tests/1.auth_register.py
+python api_tests/A1.auth_register.py
 
 # Example running login test
-python api_tests/3.auth_login.py
+python api_tests/A2.auth_login.py
 ```
 > 💡 These scripts default to targeting `http://localhost:8000`. If you are using Docker, change the URL in the script to `http://localhost:5005`.
 
