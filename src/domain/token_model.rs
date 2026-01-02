@@ -6,13 +6,14 @@ use utoipa::ToSchema;
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct TokenDetails {
     pub token: String,
-    pub expires_in: i64,
+    pub expires: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct TokenResponse {
+    #[serde(rename = "access")]
     pub access_token: TokenDetails,
+    #[serde(rename = "refresh")]
     pub refresh_token: TokenDetails,
 }
 
