@@ -12,7 +12,7 @@ pub struct User {
     pub email: String,
     #[serde(skip_serializing)]
     pub password: String,
-    #[sqlx(try_from = "String")]
+    // Removed #[sqlx(try_from = "String")] to allow direct mapping
     pub role: Role,
     pub is_email_verified: bool,
     pub created_at: DateTime<Utc>,
@@ -20,7 +20,7 @@ pub struct User {
 }
 
 #[derive(Debug, Serialize, Deserialize, sqlx::Type, Clone, ToSchema, PartialEq, PartialOrd, Eq, Ord)]
-
+#[serde(rename_all = "lowercase")] 
 pub enum Role {
     User,
     Admin,

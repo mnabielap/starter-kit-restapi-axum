@@ -32,7 +32,8 @@ fn create_token(user_id: Uuid, secret: &str, expires_in_str: &str, token_type: &
     };
 
     let token = encode(&jsonwebtoken::Header::default(), &claims, &EncodingKey::from_secret(secret.as_ref()))?;
-    Ok(TokenDetails { token, expires_in: expires_at.timestamp() })
+    
+    Ok(TokenDetails { token, expires: expires_at })
 }
 
 fn create_auth_tokens(user_id: Uuid) -> Result<TokenResponse, AppError> {
@@ -74,8 +75,7 @@ impl AuthUsecase for AuthUsecaseImpl {
         let new_user = self.user_repo.create(&data.name, &data.email, &password_hash, Role::User).await?;
         let tokens = create_auth_tokens(new_user.id)?;
         
-        let expires_at = Utc::now() + Duration::days(30);
-        self.token_repo.create(&tokens.refresh_token.token, new_user.id, expires_at, TokenType::Refresh).await?;
+        self.token_repo.create(&tokens.refresh_token.token, new_user.id, tokens.refresh_token.expires, TokenType::Refresh).await?;
 
         Ok((new_user.into(), tokens))
     }
@@ -89,8 +89,7 @@ impl AuthUsecase for AuthUsecaseImpl {
         }
         let tokens = create_auth_tokens(user.id)?;
         
-        let expires_at = Utc::now() + Duration::days(30);
-        self.token_repo.create(&tokens.refresh_token.token, user.id, expires_at, TokenType::Refresh).await?;
+        self.token_repo.create(&tokens.refresh_token.token, user.id, tokens.refresh_token.expires, TokenType::Refresh).await?;
 
         Ok((user.into(), tokens))
     }
@@ -111,8 +110,8 @@ impl AuthUsecase for AuthUsecaseImpl {
         self.token_repo.delete(token_doc.id).await?;
 
         let tokens = create_auth_tokens(user.id)?;
-        let expires_at = Utc::now() + Duration::days(30);
-        self.token_repo.create(&tokens.refresh_token.token, user.id, expires_at, TokenType::Refresh).await?;
+        
+        self.token_repo.create(&tokens.refresh_token.token, user.id, tokens.refresh_token.expires, TokenType::Refresh).await?;
         
         Ok(tokens)
     }
