@@ -1,29 +1,30 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-from utils import send_and_print, save_config, load_config, BASE_URL
+from utils import send_and_print, BASE_URL, save_config
 
-# Load the email registered previously, or use a default
-email = load_config("last_registered_email") or "admin@example.com"
-password = "password123"
+print("--- LOGGING IN (AS ADMIN) ---")
 
-print(f"--- Attempting to login as: {email} ---")
+url = f"{BASE_URL}/auth/login"
 
+# Using default admin credentials to ensure we have permissions for B* scripts
 payload = {
-    "email": email,
-    "password": password
+    "email": "admin@example.com", 
+    "password": "password123" 
 }
 
 response = send_and_print(
-    f"{BASE_URL}/auth/login",
+    url=url,
     method="POST",
-    output_file=f"{os.path.splitext(os.path.basename(__file__))[0]}.json",
-    body=payload
+    body=payload,
+    output_file=f"{os.path.splitext(os.path.basename(__file__))[0]}.json"
 )
 
 if response.status_code == 200:
     data = response.json()
-    save_config("access_token", data["tokens"]["accessToken"]["token"])
-    save_config("refresh_token", data["tokens"]["refreshToken"]["token"])
-    save_config("current_user_id", data["user"]["id"])
-    print("\n[SUCCESS] Logged in and tokens updated in secrets.json")
+    # Save tokens to secrets.json for subsequent requests
+    save_config("accessToken", data['tokens']['access']['token'])
+    save_config("refreshToken", data['tokens']['refresh']['token'])
+    print(">>> Login successful. Access and Refresh tokens saved.")
+else:
+    print(">>> Login Failed.")
