@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{PgPool, QueryBuilder, Row};
 use std::sync::Arc;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -10,10 +10,21 @@ use crate::{
     error::AppError,
 };
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, PartialEq)]
+pub enum UserSortDirection {
+    Asc,
+    Desc,
+}
+
+#[derive(Debug)]
 pub struct UserQueryOptions {
     pub page: Option<u32>,
     pub limit: Option<u32>,
+    pub search: Option<String>,
+    pub scope: Option<String>, // "all", "name", "email", "id"
+    pub role: Option<Role>,
+    pub sort_column: String,
+    pub sort_direction: UserSortDirection,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -46,6 +57,56 @@ pub struct UserRepositoryImpl {
 impl UserRepositoryImpl {
     pub fn new(db_pool: Arc<PgPool>) -> Self {
         Self { db_pool }
+    }
+
+    // Helper to build the WHERE clause based on options
+    fn apply_filters<'a>(&self, query: &mut QueryBuilder<'a, sqlx::Postgres>, options: &'a UserQueryOptions) {
+        query.push(" WHERE 1=1 ");
+
+        if let Some(role) = &options.role {
+            query.push(" AND role = ");
+            query.push_bind(role.clone() as Role);
+        }
+
+        if let Some(search) = &options.search {
+            if !search.is_empty() {
+                let scope = options.scope.as_deref().unwrap_or("all");
+                let like_pattern = format!("%{}%", search);
+
+                match scope {
+                    "name" => {
+                        query.push(" AND name ILIKE ");
+                        query.push_bind(like_pattern);
+                    }
+                    "email" => {
+                        query.push(" AND email ILIKE ");
+                        query.push_bind(like_pattern);
+                    }
+                    "id" => {
+                         if let Ok(uuid) = Uuid::parse_str(search) {
+                            query.push(" AND id = ");
+                            query.push_bind(uuid);
+                         } else {
+                             // If searching by ID but input isn't UUID, strictly return nothing
+                             query.push(" AND 1=0 ");
+                         }
+                    }
+                    _ => {
+                        // Scope 'all'
+                        query.push(" AND (name ILIKE ");
+                        query.push_bind(like_pattern.clone());
+                        query.push(" OR email ILIKE ");
+                        query.push_bind(like_pattern);
+                        
+                        if let Ok(uuid) = Uuid::parse_str(search) {
+                            query.push(" OR id = ");
+                            query.push_bind(uuid);
+                        }
+                        query.push(")");
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -89,24 +150,50 @@ impl UserRepository for UserRepositoryImpl {
     }
 
     async fn query_users(&self, options: UserQueryOptions) -> Result<PaginatedResult<User>, AppError> {
-        let page = options.page.unwrap_or(1);
-        let limit = options.limit.unwrap_or(10);
+        let page = options.page.unwrap_or(1).max(1);
+        let limit = options.limit.unwrap_or(10).max(1);
         let offset = (page - 1) * limit;
 
-        let total_results: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
-            .fetch_one(&*self.db_pool).await?;
+        // 1. Build Count Query
+        let mut count_query_builder = QueryBuilder::new("SELECT COUNT(*) FROM users");
+        self.apply_filters(&mut count_query_builder, &options);
         
-        let users = sqlx::query_as!(
-            User,
-            r#"
-            SELECT id, name, email, password, role AS "role!: Role", is_email_verified, created_at, updated_at
-            FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2
-            "#,
-            limit as i64,
-            offset as i64
-        )
-        .fetch_all(&*self.db_pool)
-        .await?;
+        let total_results: i64 = count_query_builder.build_query_scalar()
+            .fetch_one(&*self.db_pool)
+            .await
+            .unwrap_or(0);
+
+        // 2. Build Data Query
+        let mut query_builder = QueryBuilder::new(
+            r#"SELECT id, name, email, password, role, is_email_verified, created_at, updated_at FROM users"#
+        );
+        self.apply_filters(&mut query_builder, &options);
+
+        // Sorting
+        let sort_column = match options.sort_column.as_str() {
+            "name" => "name",
+            "email" => "email",
+            "role" => "role",
+            "id" => "id",
+            _ => "created_at", // Default safety
+        };
+        
+        let direction = match options.sort_direction {
+            UserSortDirection::Asc => "ASC",
+            UserSortDirection::Desc => "DESC",
+        };
+
+        query_builder.push(format!(" ORDER BY {} {} ", sort_column, direction));
+
+        // Pagination
+        query_builder.push(" LIMIT ");
+        query_builder.push_bind(limit as i64);
+        query_builder.push(" OFFSET ");
+        query_builder.push_bind(offset as i64);
+
+        let users = query_builder.build_query_as::<User>()
+            .fetch_all(&*self.db_pool)
+            .await?;
         
         let total_pages = if total_results > 0 {
             (total_results as f64 / limit as f64).ceil() as u32

@@ -12,7 +12,6 @@ pub struct User {
     pub email: String,
     #[serde(skip_serializing)]
     pub password: String,
-    #[sqlx(try_from = "String")]
     pub role: Role,
     pub is_email_verified: bool,
     pub created_at: DateTime<Utc>,

@@ -13,7 +13,7 @@ use validator::Validate;
 use crate::{
     domain::user_model::{FilteredUser, Role},
     error::{AppError, ErrorResponse},
-    repository::user_repository::{PaginatedResult, UserQueryOptions},
+    repository::user_repository::{PaginatedResult, UserQueryOptions, UserSortDirection},
     usecase::user_usecase::UserUsecase,
 };
 
@@ -38,6 +38,11 @@ pub struct UpdateUserSchema {
 pub struct GetUsersQuery {
     pub page: Option<u32>,
     pub limit: Option<u32>,
+    pub search: Option<String>,
+    pub scope: Option<String>,
+    pub role: Option<Role>,
+    #[serde(rename = "sortBy")]
+    pub sort_by: Option<String>,
 }
 
 #[utoipa::path(
@@ -67,7 +72,7 @@ pub async fn create_user_handler(
     tag = "Users",
     params(GetUsersQuery),
     responses(
-        (status = 200, description = "List of users", body = PaginatedUsers),
+        (status = 200, description = "List of users", body = PaginatedResult<FilteredUser>),
         (status = 403, description = "Forbidden", body = ErrorResponse)
     ),
     security(("bearer_auth" = []))
@@ -76,10 +81,30 @@ pub async fn get_users_handler(
     State(user_usecase): State<Arc<dyn UserUsecase>>,
     Query(params): Query<GetUsersQuery>,
 ) -> Result<impl IntoResponse, AppError> {
+    
+    // Parse sortBy string (e.g., "name:asc")
+    let (sort_column, sort_direction) = if let Some(sort_str) = params.sort_by {
+        let parts: Vec<&str> = sort_str.split(':').collect();
+        let col = parts.get(0).unwrap_or(&"created_at").to_string();
+        let dir = match parts.get(1).unwrap_or(&"desc") {
+            &"asc" => UserSortDirection::Asc,
+            _ => UserSortDirection::Desc,
+        };
+        (col, dir)
+    } else {
+        ("created_at".to_string(), UserSortDirection::Desc)
+    };
+
     let options = UserQueryOptions {
         page: params.page,
         limit: params.limit,
+        search: params.search,
+        scope: params.scope,
+        role: params.role,
+        sort_column,
+        sort_direction,
     };
+    
     let users = user_usecase.get_users(options).await?;
     Ok(Json(users))
 }
